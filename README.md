@@ -133,10 +133,39 @@ if not "name" in data:
 ```python
 iterable = products.find({"name": data['name']}
 ```
-
-
-```
-Εάν το αναγνωριστικό που έχει δώσει ο χρήστης υπάρχει μέσα στην βάση τότε προσθέτω όλα τα δεδομένα του σε ένα dictionairy και τα εμφανίζω στον χρήστη. Σε κάθε άλλη περίπτωση εμφανίζεται μήνυμα λάθους. Σημειώνω επίσης πως ο χρήστης πρέπει να είναι αυθεντικοποιημένος: 
+Στην περίπτωση που υπάρχουν προιόντα που έχω βρει με την find τότε δημιουργώ μια λίστα στην οποία προσθέτω όλα τα προιόντα που βρήκα με append τα οποία εμφανίζονται στο τέλος στον χρήστη
 ```python
-    if (is_session_valid(uuid)):
+products_list.append(item)
+```
+Όμως στον χρήστη πρέπει να εμφανίζονται ταξινομημένα με αλφαβητική σειρά (επέλεξα το category, αφού δεν μας προσδιορίζεται κάποια παράμετρος):
+```python
+return Response(json.dumps(sorted(products_list, key=lambda i: (i['category'])))
+, status=200, mimetype='application/json')
+```
+Σημειώνω επίσης πως ο χρήστης πρέπει να είναι αυθεντικοποιημένος: 
+```python
+if (is_session_valid(uuid)):
+```
+## search_product/category
+Για το search_product/category φορτώνω επίσης τα δεδομένα που σημειώσα και παραπάνω με διαφορετικά τα δεδομένα που δίνονται στο πεδίο του μηνύματος "Information incomplete".
+```python
+if not "category" in data:
+```
+Έπειτα αναζητώ τα προιόντα με το όνομα που έδωσε ο χρήστης με την μέθοδο find και τα προσθέτω στην λίστα iterable:
+
+```python
+iterable = products.find({"category": data['category']}
+```
+Στην περίπτωση που υπάρχουν προιόντα που έχω βρει με την find τότε δημιουργώ μια λίστα στην οποία προσθέτω όλα τα προιόντα που βρήκα με append τα οποία εμφανίζονται στο τέλος στον χρήστη
+```python
+products_list.append(item)
+```
+Όμως στον χρήστη πρέπει να εμφανίζονται ταξινομημένα με σειρά τιμής:
+```python
+return Response(json.dumps(sorted(products_list, key=lambda i: (i['price'])))
+, status=200, mimetype='application/json')
+```
+Σημειώνω επίσης πως ο χρήστης πρέπει να είναι αυθεντικοποιημένος: 
+```python
+if (is_session_valid(uuid)):
 ```
