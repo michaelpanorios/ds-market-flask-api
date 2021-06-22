@@ -268,7 +268,8 @@ if (user['category'] == 'user'):
 user = {'orderHistory':user["orderHistory"]}
 return Response(json.dumps(user), status=200, mimetype='application/json')
 ```
-##delete_user 
+
+## delete_user 
 Για να μπορεί ο συνδεδεμένος χρήστης στο σύστημα να διαγράψει τον λογαριασμό του και μόνο πρέπει να κρατάω το δεδομένο του email του. Αυτό το κάνω στο σημείο του login. Συνεπώς συγκρίνω το email που δίνει με αυτό που έχω κρατήσει στην σύνδεση του. Εάν αυτό είναι ίδιο τότε τον διαγράφω απο την βάση:
 ```python
 global email
