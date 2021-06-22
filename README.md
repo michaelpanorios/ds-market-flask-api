@@ -169,3 +169,116 @@ return Response(json.dumps(sorted(products_list, key=lambda i: (i['price'])))
 ```python
 if (is_session_valid(uuid)):
 ```
+## add_shopping_basket
+Για την μέθοδο αυτή ο χρήστης πρέπει να συμπληρώσει το email, το _id του προιόντος που θέλει να αγοράσει καθώς και την ποσότητα stock. Τα δεδομένα φορτώνονται με τον ίδιο τρόπο που υπάρχει και στα παραπάνω app.routes με την μόνη διαφορά:
+```python
+if not "email" in data or not "_id" in data or not "stock" in data:
+```
+Στην συνέχεια για να υλοποιηθεί αυτή η μέθοδος απαιτείται είσοδος με λογαριασμό "user" για αυτό και το ελέγχω:
+```python
+if (user['category'] == 'user'):
+```
+Εάν δεν είναι "user" ο χρήστης που προσπαθεί να αγοράσει απόθεμα τότε εμφανίζεται κατάλληλο μήνυμα. Έπειτα αναζητώ ένα προιόν που με βάση του μοναδικού _id που δίνεται απο την Mongo και κάνοντας το απαραίτητο typecast: 
+```python
+product = products.find_one({"_id": ObjectId(data['_id'])})
+```
+Πρέπει επίσης να ελέγξω εάν η ποσότητα που επιθυμεί ο χρήστης να αγοράσει διατίθεται στο κατάστημα. Υπάρχει πιθανότητα να μην διατείθεται για τον λόγο αυτόν κάνω τις απαραίτητες ενέργειες: 
+```python
+            if product is not None:
+                if data['stock'] > product['stock']:
+                    return Response("Quantity unavailable", status=400, mimetype='application/json')
+```
+Αν όμως η ποσότητα που ζητάει υπάρχει και μπορεί να αγοραστεί τότε προχωράμε στην αγόρα. Στο συνολικό κόστος προστίθεται ο αριθμός που προκύπτει απο το γινόμενο της ποσότητας και της τιμής. Ταυτόχρονα, πρέπει να αφαιρεθεί και η ποσότητα του προιόντος που δεσμεύτηκε απο τον πελάτη. Τέλος δημιουργώ ένα dictionairy item στο οποίο προσθέτω τα στοιχεία της παραγγελίας για το προιόν:
+```python
+global total_cost
+total_cost += data['stock']*product['price']
+products.update({"_id": ObjectId(data['_id'])}, {"$set": {"stock": product['stock']-data['stock']}})
+item = {'name':product["name"], 'price':product["price"],'stock':data["stock"]}
+global_basket.append(item)
+msg = "Your shopping cart until now"+str(global_basket)+"and the total cost is: "+str(total_cost)
+```
+## check_shopping_basket
+Για την μέθοδο αυτή ο χρήστης πρέπει να συμπληρώσει το email. Τα δεδομένα φορτώνονται με τον ίδιο τρόπο που υπάρχει και στα παραπάνω app.routes με την μόνη διαφορά:
+```python
+if not "email" in data:
+```
+Το καλάθι που ανήκει σε αυτό το email έχει ήδη γεμίσει (εάν έχει περάσει βέβαια απο το add_shopping_basket route) το οποίο είναι global μεταβλητή. Οπότε:
+```python
+msg = "Your shopping cart until now" + str(global_basket) + "and the total cost is: " + str(total_cost)
+return Response(msg, status=200, mimetype='application/json')
+```
+Επίσης για να υλοποιηθεί αυτή η μέθοδος απαιτείται είσοδος με λογαριασμό "user" για αυτό και το ελέγχω:
+```python
+if (user['category'] == 'user'):
+```
+## delete_product_basket
+Για την μέθοδο αυτή ο χρήστης πρέπει να συμπληρώσει το email, το _id του προιόντος που θέλει να διαγράψει. Τα δεδομένα φορτώνονται με τον ίδιο τρόπο που υπάρχει και στα παραπάνω app.routes με την μόνη διαφορά:
+```python
+if not "email" in data or not "_id" in data:
+```
+Στην συνέχεια για να υλοποιηθεί αυτή η μέθοδος απαιτείται είσοδος με λογαριασμό "user" για αυτό και το ελέγχω:
+```python
+if (user['category'] == 'user'):
+```
+Εάν δεν είναι "user" ο χρήστης που προσπαθεί να διαγράψει τότε εμφανίζεται κατάλληλο μήνυμα. Έπειτα αναζητώ ένα προιόν που με βάση του μοναδικού _id που δίνεται απο την Mongo και κάνοντας το απαραίτητο typecast: 
+```python
+product = products.find_one({"_id": ObjectId(data['_id'])})
+```
+Στην συνέχεια προσπαθώ να βρώ εάν υπάρχει στο καλάθι προιόν που το όνομα του συμπίπτει με το _id του product που εντόπισα στην βάση. Έαν υπάρχει τότε αφαιρώ το γινόμενο του διαγραμένου προιόντος με την ποσότητα και την τιμή του και επιστρέφω στην βάση των προιόντων το stock στο επίπεδο που ήταν επιστρέφοντας το δεσμευμένο απόθεμα:
+```python
+global total_cost
+for i in range(len(global_basket)):
+  if global_basket[i]['name'] == product["name"]:
+     total_cost -= global_basket[i]['stock'] * product['price']
+     products.update({"_id": ObjectId(data['_id'])},{"$set": {"stock": product['stock'] + global_basket[i]['stock']}})
+     del global_basket[i]
+     break
+msg = "Your shopping cart until now" + str(global_basket) + "and the total cost is: " + str(total_cost)
+```
+## buy_all_products
+Για την μέθοδο αυτή ο χρήστης πρέπει να συμπληρώσει το email και την card που αποτελεί τον αριθμό της κάρτας που θέλει να εισάγει:
+```python
+if not "email" in data or not "card" in data:
+```
+Στην συνέχεια για να υλοποιηθεί αυτή η μέθοδος απαιτείται είσοδος με λογαριασμό "user" για αυτό και το ελέγχω:
+```python
+if (user['category'] == 'user'):
+```
+Για να αγοραστεί το καλάθι πρέπει ο χρήστης να συμπληρώσει τον 16ψήφιο αριθμό της κάρτας του. Για αυτό τον λόγο γίνεται και ο έλεγχος για το μήκος της κάρτας. Αν αγοραστεί τότε το καλάθι αδειάζει και τα προιόντα στην βάση τηρούν το νέο τους απόθεμα. Τέλος ενημερώνεται και το πεδίο orderHistory του χρήστη με το καλάθι που μόλις αγοράστηκε και εμφανίζεται στον χρήστη η απόδειξη αγοράς:
+```python
+ if(len(data["card"])!=16):
+    return Response("Card number must contain 16 digits", status=400, mimetype='application/json')
+order_history = user["orderHistory"]
+order_history.append(global_basket)
+users.update_one({'email': data["email"]}, {"$set": {"orderHistory": order_history}})
+msg = "Receipt" + str(global_basket) + "and the total cost is: " + str(total_cost)
+return Response(msg, status=200, mimetype='application/json')
+```
+## get_order_history
+Για την μέθοδο αυτή ο χρήστης πρέπει να συμπληρώσει το email. Τα δεδομένα φορτώνονται με τον ίδιο τρόπο που υπάρχει και στα παραπάνω app.routes με την μόνη διαφορά:
+```python
+if not "email" in data:
+```
+Στην συνέχεια για να υλοποιηθεί αυτή η μέθοδος απαιτείται είσοδος με λογαριασμό "user" για αυτό και το ελέγχω:
+```python
+if (user['category'] == 'user'):
+```
+Αναζητώ τον χρήστη και στην συνέχεια αφού τον έχω βρεί ελέγχω το πεδίο του orderHistory:
+```python
+user = {'orderHistory':user["orderHistory"]}
+return Response(json.dumps(user), status=200, mimetype='application/json')
+```
+##delete_user 
+Για να μπορεί ο συνδεδεμένος χρήστης στο σύστημα να διαγράψει τον λογαριασμό του και μόνο πρέπει να κρατάω το δεδομένο του email του. Αυτό το κάνω στο σημείο του login. Συνεπώς συγκρίνω το email που δίνει με αυτό που έχω κρατήσει στην σύνδεση του. Εάν αυτό είναι ίδιο τότε τον διαγράφω απο την βάση:
+```python
+global email
+
+if is_session_valid(uuid):
+   user = users.find_one({"email": data['email']})
+   if user['category'] == 'user' and email == data['email']:
+      msg = (user['name']+" was deleted.")
+      users.delete_one({"email":data['email']})
+      return Response(msg, status=200, mimetype='application/json')
+   else:
+      return Response("You can only delete your user account", status=400, mimetype='application/json')
+```
