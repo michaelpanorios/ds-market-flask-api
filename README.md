@@ -282,3 +282,63 @@ if is_session_valid(uuid):
    else:
       return Response("You can only delete your user account", status=400, mimetype='application/json')
 ```
+## add_product as an admin
+Για την μέθοδο αυτή ο χρήστης πρέπει να συμπληρώσει το email, το price του προιόντος που θέλει να προσθέσει, την ποσότητα stock καθώς και το category και description. Τα δεδομένα φορτώνονται με τον ίδιο τρόπο που υπάρχει και στα παραπάνω app.routes με την μόνη διαφορά:
+```python
+if not "email" in data or not "price" in data or not "stock" in data or not "category" in data or not "description" in data:
+```
+Στην συνέχεια για να υλοποιηθεί αυτή η μέθοδος απαιτείται είσοδος με λογαριασμό "admin" για αυτό και το ελέγχω:
+```python
+if (user['category'] == 'admin'):
+```
+Δημιουργώ ένα dictionairy product το οποίο το γεμίζω με τα δεδομένα που εισάγει ο χρήστης και στην συνέχεια το προσθέτω στην βάση:
+```python
+product = {
+                "name": data['name'],
+                "price": data['price'],
+                "description": data['description'],
+                "category": data['category'],
+                "stock": data['stock']
+            }
+products.insert_one(product)
+return Response("Product was added succesfully", status=200, mimetype='application/json')
+```
+
+## delete_product as an admin
+Για την μέθοδο αυτή ο χρήστης πρέπει να συμπληρώσει το email, το _id του προιόντος που θέλει να διαγράψει. Τα δεδομένα φορτώνονται με τον ίδιο τρόπο που υπάρχει και στα παραπάνω app.routes με την μόνη διαφορά:
+```python
+if not "email" in data or not "_id" in data:
+```
+Στην συνέχεια για να υλοποιηθεί αυτή η μέθοδος απαιτείται είσοδος με λογαριασμό "admin" για αυτό και το ελέγχω:
+```python
+if (user['category'] == 'admin'):
+```
+Εάν δεν είναι "admin" ο χρήστης που προσπαθεί να διαγράψει τότε εμφανίζεται κατάλληλο μήνυμα. Έπειτα αναζητώ ένα προιόν που με βάση του μοναδικού _id που δίνεται απο την Mongo και κάνοντας το απαραίτητο typecast. Τέλος διαγράφω το προιόν απο την βάση:
+```python
+product = products.delete_one({"_id": ObjectId(data['_id'])})
+```
+
+## update_product as an admin
+Για την μέθοδο αυτή ο χρήστης πρέπει να συμπληρώσει το email, το price του προιόντος που θέλει να προσθέσει, την ποσότητα stock καθώς και το category και description. Τα δεδομένα φορτώνονται με τον ίδιο τρόπο που υπάρχει και στα παραπάνω app.routes με την μόνη διαφορά:
+```python
+if not "email" in data or not "price" in data or not "stock" in data or not "category" in data or not "description" in data:
+```
+Στην συνέχεια για να υλοποιηθεί αυτή η μέθοδος απαιτείται είσοδος με λογαριασμό "admin" για αυτό και το ελέγχω:
+```python
+if (user['category'] == 'admin'):
+```
+Ελέγχω εάν τα δεδομένα που έχει δώσει προς αλλαγή περιέχουν κάποια τιμή. Αν έχει τότε αλλάζω το συγκεκριμένο πεδίο αλλιώς παραμένει ίδιο:
+```python
+if data["name"] is not None:
+      products.update({"_id": ObjectId(data['_id'])}, {"$set": {"name": data['name']}})
+if data["price"] is not None:
+      products.update({"_id": ObjectId(data['_id'])}, {"$set": {"price": data['price']}})
+if data["description"] is not None:
+     products.update({"_id": ObjectId(data['_id'])}, {"$set": {"description": data['description']}})
+if data["stock"] is not None:
+     products.update({"_id": ObjectId(data['_id'])}, {"$set": {"stock": data['stock']}})
+return Response("Product was updated succesfully", status=200, mimetype='application/json')
+```
+
+## Επίλογος 
+Σε κάθε συνάρτηση και κάθε περίπτωση υπάρχουν μηνύματα λάθος με τα απαραίτητα status codes. Δεν ανέφερα περισσότερες λεπτομέρειες για αυτά αφού στην πλειοψηφία των περιπτώσεων είναι επαναλαμβανόμενες.
